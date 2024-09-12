@@ -71,8 +71,17 @@ func (r *RestaurantFoodService) CreateRestaurant(ctx context.Context, restaurant
 }
 
 // DeleteFood implements proto.RestaurantFoodServer.
-func (r *RestaurantFoodService) DeleteFood(context.Context, *proto.FoodIdRequest) (*proto.Empty, error) {
-	panic("unimplemented")
+func (r *RestaurantFoodService) DeleteFood(ctx context.Context, food *proto.FoodIdRequest) (*proto.Empty, error) {
+	foodId, err := bson.ObjectIDFromHex(food.Id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid FoodId: %v", err)
+	}
+	_, err = r.FoodCollection.DeleteOne(ctx, bson.M{"_id": foodId})
+	if err != nil {
+		fmt.Println("Error deleting food: ", err)
+		return nil, err
+	}
+	return &proto.Empty{}, nil
 }
 
 // DeleteRestaurant implements proto.RestaurantFoodServer.
@@ -81,13 +90,59 @@ func (r *RestaurantFoodService) DeleteRestaurant(context.Context, *proto.Restaur
 }
 
 // GetFoodByFoodId implements proto.RestaurantFoodServer.
-func (r *RestaurantFoodService) GetFoodByFoodId(context.Context, *proto.FoodIdRequest) (*proto.Food, error) {
-	panic("unimplemented")
+func (r *RestaurantFoodService) GetFoodByFoodId(ctx context.Context, food *proto.FoodIdRequest) (*proto.Food, error) {
+	foodId, err := bson.ObjectIDFromHex(food.Id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid FoodId: %v", err)
+	}
+	var foodModel model.Food
+	err = r.FoodCollection.FindOne(ctx, bson.M{"_id": foodId}).Decode(&foodModel)
+	if err != nil {
+		fmt.Println("Error finding food: ", err)
+		return nil, err
+	}
+	return &proto.Food{
+		Id:           foodModel.Id.Hex(),
+		RestaurantId: foodModel.RestaurantId.Hex(),
+		Name:         foodModel.Name,
+		Description:  foodModel.Description,
+		Price:        foodModel.Price,
+	}, nil
 }
 
-// GetFoodByRestaurantId implements proto.RestaurantFoodServer.
-func (r *RestaurantFoodService) GetFoodByRestaurantId(context.Context, *proto.RestaurantIdRequest) (*proto.GetFoodResponse, error) {
-	panic("unimplemented")
+// GetFoodsByRestaurantId implements proto.RestaurantFoodServer.
+func (r *RestaurantFoodService) GetFoodsByRestaurantId(ctx context.Context, restaurant *proto.RestaurantIdRequest) (*proto.GetFoodResponse, error) {
+	restaurantId, err := bson.ObjectIDFromHex(restaurant.Id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid RestaurantId: %v", err)
+	}
+	cursor, err := r.FoodCollection.Find(ctx, bson.M{"restaurant_id": restaurantId})
+	if err != nil {
+		fmt.Println("Error finding food: ", err)
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var foods []*proto.Food
+	for cursor.Next(ctx) {
+		var foodModel model.Food
+		if err := cursor.Decode(&foodModel); err != nil {
+			fmt.Println("Error decoding food: ", err)
+			return nil, err
+		}
+		foods = append(foods, &proto.Food{
+			Id:           foodModel.Id.Hex(),
+			RestaurantId: foodModel.RestaurantId.Hex(),
+			Name:         foodModel.Name,
+			Description:  foodModel.Description,
+			Price:        foodModel.Price,
+		})
+	}
+	if err := cursor.Err(); err != nil {
+		fmt.Println("Cursor error: ", err)
+		return nil, err
+	}
+	return &proto.GetFoodResponse{Foods: foods}, nil
 }
 
 // GetRestaurantByRestaurantId implements proto.RestaurantFoodServer.
@@ -101,8 +156,35 @@ func (r *RestaurantFoodService) GetRestaurants(context.Context, *proto.Empty) (*
 }
 
 // UpdateFood implements proto.RestaurantFoodServer.
-func (r *RestaurantFoodService) UpdateFood(context.Context, *proto.Food) (*proto.Food, error) {
-	panic("unimplemented")
+func (r *RestaurantFoodService) UpdateFood(ctx context.Context, food *proto.Food) (*proto.Food, error) {
+	foodId, err := bson.ObjectIDFromHex(food.Id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid FoodId: %v", err)
+	}
+	restaurantId, err := bson.ObjectIDFromHex(food.RestaurantId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid RestaurantId: %v", err)
+	}
+	fmt.Println(foodId, restaurantId)
+	foodModel := &model.Food{
+		Id:           foodId,
+		RestaurantId: restaurantId,
+		Name:         food.Name,
+		Description:  food.Description,
+		Price:        food.Price,
+	}
+	_, err = r.FoodCollection.ReplaceOne(ctx, bson.M{"_id": foodId}, foodModel)
+	if err != nil {
+		fmt.Println("Error updating food: ", err)
+		return nil, err
+	}
+	return &proto.Food{
+		Id:           food.Id,
+		RestaurantId: food.RestaurantId,
+		Name:         food.Name,
+		Description:  food.Description,
+		Price:        food.Price,
+	}, nil
 }
 
 // UpdateRestaurants implements proto.RestaurantFoodServer.

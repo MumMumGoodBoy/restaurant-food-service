@@ -11,7 +11,7 @@ service RestaurantFood {
   rpc UpdateRestaurants (Restaurant) returns (Restaurant) {}
   rpc DeleteRestaurant (RestaurantIdRequest) returns (Empty) {}
   //Food
-  rpc GetFoodByRestaurantId (RestaurantIdRequest) returns (GetFoodResponse) {}
+  rpc GetFoodsByRestaurantId (RestaurantIdRequest) returns (GetFoodResponse) {}
   rpc GetFoodByFoodId (FoodIdRequest) returns (Food) {}
   rpc CreateFood (Food) returns (Food) {} 
   rpc UpdateFood (Food) returns (Food) {}
