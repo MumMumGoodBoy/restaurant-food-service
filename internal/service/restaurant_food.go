@@ -20,18 +20,42 @@ type RestaurantFoodService struct {
 
 // CreateFood implements proto.RestaurantFoodServer.
 func (r *RestaurantFoodService) CreateFood(ctx context.Context, food *proto.Food) (*proto.Food, error) {
-	panic("unimplemented")
+	restaurantId, err := bson.ObjectIDFromHex(food.RestaurantId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid RestaurantId: %v", err)
+	}
+	foodModel := &model.Food{
+		Id:           bson.NewObjectID(),
+		RestaurantId: restaurantId,
+		Name:         food.Name,
+		Description:  food.Description,
+		Price:        food.Price,
+	}
+
+	result, err := r.FoodCollection.InsertOne(ctx, foodModel)
+	if err != nil {
+		fmt.Println("Error inserting food: ", err)
+		return nil, err
+	}
+
+	return &proto.Food{
+		Id:           result.InsertedID.(bson.ObjectID).Hex(),
+		RestaurantId: food.RestaurantId,
+		Name:         food.Name,
+		Description:  food.Description,
+		Price:        food.Price,
+	}, nil
 }
 
 // CreateRestaurant implements proto.RestaurantFoodServer.
 func (r *RestaurantFoodService) CreateRestaurant(ctx context.Context, restaurant *proto.CreateRestaurantRequest) (*proto.Restaurant, error) {
-	foodModel := &model.Restaurant{
+	restaurantModel := &model.Restaurant{
 		Id:      bson.NewObjectID(),
 		Name:    restaurant.Name,
 		Address: restaurant.Address,
 		Phone:   restaurant.Phone,
 	}
-	result, err := r.RestaurantCollection.InsertOne(ctx, foodModel)
+	result, err := r.RestaurantCollection.InsertOne(ctx, restaurantModel)
 
 	if err != nil {
 		fmt.Println("Error inserting restaurant: ", err)
