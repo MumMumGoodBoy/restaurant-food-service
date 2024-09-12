@@ -3,6 +3,12 @@ generate:
     --go-grpc_out=. --go-grpc_opt=paths=source_relative \
     proto/restaurant-food.proto
 
+compose-up:
+	docker-compose up -d
+
+compose-down:
+	docker-compose down
+
 dev:
 	make generate
 	goreload main.go
