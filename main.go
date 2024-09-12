@@ -32,10 +32,12 @@ func main() {
 	fmt.Println("Connected")
 
 	db := client.Database("restaurant-food-service")
-	collection := db.Collection("restaurant")
+	restaurantCollection := db.Collection("restaurant")
+	foodCollection := db.Collection("food")
 
 	restaurantService := service.RestaurantFoodService{
-		RestaurantCollection: collection,
+		RestaurantCollection: restaurantCollection,
+		FoodCollection:       foodCollection,
 	}
 	grpcServer := grpc.NewServer()
 	proto.RegisterRestaurantFoodServer(grpcServer, &restaurantService)

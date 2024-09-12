@@ -15,11 +15,11 @@ var _ proto.RestaurantFoodServer = (*RestaurantFoodService)(nil)
 type RestaurantFoodService struct {
 	proto.UnimplementedRestaurantFoodServer
 	RestaurantCollection *mongo.Collection
+	FoodCollection       *mongo.Collection
 }
 
 // CreateFood implements proto.RestaurantFoodServer.
 func (r *RestaurantFoodService) CreateFood(ctx context.Context, food *proto.Food) (*proto.Food, error) {
-
 	panic("unimplemented")
 }
 
