@@ -1,0 +1,61 @@
+syntax = "proto3";
+option go_package = "github.com/MumMumGoodBoy/restaurant-food-service/proto";
+
+package proto;
+
+service RestaurantFood {
+  // Restaurant
+  rpc GetRestaurants (Empty) returns (GetRestaurantResponse) {}
+  rpc GetRestaurantByRestaurantId (RestaurantIdRequest) returns (Restaurant) {}
+  rpc CreateRestaurant (CreateRestaurantRequest) returns (Restaurant) {}
+  rpc UpdateRestaurants (Restaurant) returns (Restaurant) {}
+  rpc DeleteRestaurant (RestaurantIdRequest) returns (Empty) {}
+  //Food
+  rpc GetFoodByRestaurantId (RestaurantIdRequest) returns (GetFoodResponse) {}
+  rpc GetFoodByFoodId (FoodIdRequest) returns (Food) {}
+  rpc CreateFood (Food) returns (Food) {} 
+  rpc UpdateFood (Food) returns (Food) {}
+  rpc DeleteFood (FoodIdRequest) returns (Empty) {}
+}
+
+message Empty {}
+
+
+message Restaurant {
+    string id =1;
+    string name = 2;
+    string address = 3;
+    string phone = 4;
+}
+
+
+message CreateRestaurantRequest {
+    string name = 1;
+    string address = 2;
+    string phone = 3;
+}
+
+message RestaurantIdRequest {
+    string id = 1;
+}
+
+message GetRestaurantResponse{
+    repeated Restaurant restaurants = 1;
+}
+
+message Food {
+    string id = 1;
+    string name = 2;
+    string description = 3;
+    float price = 4;
+    string restaurant_id = 5;
+}
+
+message FoodIdRequest {
+    string id = 1;
+}
+
+message GetFoodResponse{
+    repeated Food foods = 1;
+}
+
