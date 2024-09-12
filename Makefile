@@ -4,4 +4,5 @@ generate:
     proto/restaurant-food.proto
 
 dev:
+	make generate
 	goreload main.go
