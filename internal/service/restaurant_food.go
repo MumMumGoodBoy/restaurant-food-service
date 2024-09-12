@@ -165,7 +165,7 @@ func (r *RestaurantFoodService) UpdateFood(ctx context.Context, food *proto.Food
 	if err != nil {
 		return nil, fmt.Errorf("invalid RestaurantId: %v", err)
 	}
-	fmt.Println(foodId, restaurantId)
+
 	foodModel := &model.Food{
 		Id:           foodId,
 		RestaurantId: restaurantId,
