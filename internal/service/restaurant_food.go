@@ -85,8 +85,19 @@ func (r *RestaurantFoodService) DeleteFood(ctx context.Context, food *proto.Food
 }
 
 // DeleteRestaurant implements proto.RestaurantFoodServer.
-func (r *RestaurantFoodService) DeleteRestaurant(context.Context, *proto.RestaurantIdRequest) (*proto.Empty, error) {
-	panic("unimplemented")
+func (r *RestaurantFoodService) DeleteRestaurant(ctx context.Context, req *proto.RestaurantIdRequest) (*proto.Empty, error) {
+	restaurantId, err := bson.ObjectIDFromHex(req.Id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid RestaurantId: %v", err)
+	}
+
+	_, err = r.RestaurantCollection.DeleteOne(ctx, bson.M{"_id": restaurantId})
+	if err != nil {
+		fmt.Println("Error deleting restaurant:", err)
+		return nil, err
+	}
+
+	return &proto.Empty{}, nil
 }
 
 // GetFoodByFoodId implements proto.RestaurantFoodServer.
@@ -146,13 +157,65 @@ func (r *RestaurantFoodService) GetFoodsByRestaurantId(ctx context.Context, rest
 }
 
 // GetRestaurantByRestaurantId implements proto.RestaurantFoodServer.
-func (r *RestaurantFoodService) GetRestaurantByRestaurantId(context.Context, *proto.RestaurantIdRequest) (*proto.Restaurant, error) {
-	panic("unimplemented")
+func (r *RestaurantFoodService) GetRestaurantByRestaurantId(ctx context.Context, req *proto.RestaurantIdRequest) (*proto.Restaurant, error) {
+	restaurantId, err := bson.ObjectIDFromHex(req.Id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid RestaurantId: %v", err)
+	}
+
+	result := r.RestaurantCollection.FindOne(ctx, bson.M{"_id": restaurantId})
+
+	var restaurantModel model.Restaurant
+	err = result.Decode(&restaurantModel)
+
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+            return nil, fmt.Errorf("restaurant not found")
+        }
+
+        fmt.Errorf("Error finding restaurant: %v", err)
+        return nil, err
+	}
+
+	restaurant := &proto.Restaurant {
+		Id:      restaurantModel.Id.Hex(),
+        Name:    restaurantModel.Name,
+        Address: restaurantModel.Address,
+        Phone:   restaurantModel.Phone,
+	}
+
+	return restaurant, nil
 }
 
 // GetRestaurants implements proto.RestaurantFoodServer.
-func (r *RestaurantFoodService) GetRestaurants(context.Context, *proto.Empty) (*proto.GetRestaurantResponse, error) {
-	panic("unimplemented")
+func (r *RestaurantFoodService) GetRestaurants(ctx context.Context, _ *proto.Empty) (*proto.GetRestaurantResponse, error) {
+	cursor, err := r.RestaurantCollection.Find(ctx, bson.M{})
+	if err != nil {
+		fmt.Println("Error finding restaurants:", err)
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var restaurants []*proto.Restaurant
+	for cursor.Next(ctx) {
+		var restaurantModel model.Restaurant
+		if err := cursor.Decode(&restaurantModel); err != nil {
+			fmt.Println("Error decoding restaurant:", err)
+			return nil, err
+		}
+		restaurants = append(restaurants, &proto.Restaurant{
+			Id:      restaurantModel.Id.Hex(),
+			Name:    restaurantModel.Name,
+			Address: restaurantModel.Address,
+			Phone:   restaurantModel.Phone,
+		})
+	}
+	if err := cursor.Err(); err != nil {
+		fmt.Println("Cursor error:", err)
+		return nil, err
+	}
+
+	return &proto.GetRestaurantResponse{Restaurants: restaurants}, nil
 }
 
 // UpdateFood implements proto.RestaurantFoodServer.
@@ -188,6 +251,29 @@ func (r *RestaurantFoodService) UpdateFood(ctx context.Context, food *proto.Food
 }
 
 // UpdateRestaurants implements proto.RestaurantFoodServer.
-func (r *RestaurantFoodService) UpdateRestaurants(context.Context, *proto.Restaurant) (*proto.Restaurant, error) {
-	panic("unimplemented")
+func (r *RestaurantFoodService) UpdateRestaurants(ctx context.Context, restaurant *proto.Restaurant) (*proto.Restaurant, error) {
+	restaurantId, err := bson.ObjectIDFromHex(restaurant.Id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid RestaurantId: %v", err)
+	}
+
+	restaurantModel := &model.Restaurant{
+		Id:      restaurantId,
+		Name:    restaurant.Name,
+		Address: restaurant.Address,
+		Phone:   restaurant.Phone,
+	}
+
+	_, err = r.RestaurantCollection.ReplaceOne(ctx, bson.M{"_id": restaurantId}, restaurantModel)
+	if err != nil {
+		fmt.Println("Error updating restaurant:", err)
+		return nil, err
+	}
+
+	return &proto.Restaurant{
+		Id:      restaurant.Id,
+		Name:    restaurant.Name,
+		Address: restaurant.Address,
+		Phone:   restaurant.Phone,
+	}, nil
 }
