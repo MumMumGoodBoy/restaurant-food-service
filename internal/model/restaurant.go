@@ -10,3 +10,11 @@ type Restaurant struct {
 	Address string        `bson:"address"`
 	Phone   string        `bson:"phone"`
 }
+
+type RestaurantEvent struct {
+	Event          string `json:"event"`
+	Id             string `json:"id"`
+	RestaurantName string `json:"restaurantName"`
+	Address        string `json:"address"`
+	Phone          string `json:"phone"`
+}

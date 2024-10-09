@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/MumMumGoodBoy/restaurant-food-service/internal/model"
 	"github.com/MumMumGoodBoy/restaurant-food-service/proto"
+	"github.com/rabbitmq/amqp091-go"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -16,9 +18,52 @@ type RestaurantFoodService struct {
 	proto.UnimplementedRestaurantFoodServer
 	RestaurantCollection *mongo.Collection
 	FoodCollection       *mongo.Collection
+	RabbitMQChannel      *amqp091.Channel
 }
 
-// CreateFood implements proto.RestaurantFoodServer.
+func (r *RestaurantFoodService) publishRestaurantEvent(data model.RestaurantEvent, event string) error {
+	body, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("error marshalling restaurant event: %v", err)
+	}
+
+	err = r.RabbitMQChannel.Publish(
+		"restaurant_topic",
+		event,
+		false,
+		false,
+		amqp091.Publishing{
+			ContentType: "application/json",
+			Body:        body,
+		})
+	if err != nil {
+		return fmt.Errorf("error publishing restaurant event: %v", err)
+	}
+	return nil
+}
+
+func (r *RestaurantFoodService) publishFoodEvent(data model.FoodEvent, event string) error {
+	body, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("error marshalling food event: %v", err)
+	}
+
+	err = r.RabbitMQChannel.Publish(
+		"food_topic",
+		event,
+		false,
+		false,
+		amqp091.Publishing{
+			ContentType: "application/json",
+			Body:        body,
+		})
+	if err != nil {
+		return fmt.Errorf("error publishing food event: %v", err)
+	}
+	return nil
+}
+
+// CreateFood implements prot                                o.RestaurantFoodServer.
 func (r *RestaurantFoodService) CreateFood(ctx context.Context, food *proto.Food) (*proto.Food, error) {
 	restaurantId, err := bson.ObjectIDFromHex(food.RestaurantId)
 	if err != nil {
@@ -38,13 +83,26 @@ func (r *RestaurantFoodService) CreateFood(ctx context.Context, food *proto.Food
 		return nil, err
 	}
 
-	return &proto.Food{
+	foodProto := &proto.Food{
 		Id:           result.InsertedID.(bson.ObjectID).Hex(),
 		RestaurantId: food.RestaurantId,
 		Name:         food.Name,
 		Description:  food.Description,
 		Price:        food.Price,
-	}, nil
+	}
+
+	data := model.FoodEvent{
+		Event:        "food.create",
+		Id:           foodProto.Id,
+		FoodName:     foodProto.Name,
+		RestaurantId: foodProto.RestaurantId,
+		Price:        foodProto.Price,
+	}
+	if err := r.publishFoodEvent(data, "food.create"); err != nil {
+		fmt.Println("Error publishing food event: ", err)
+	}
+
+	return foodProto, nil
 }
 
 // CreateRestaurant implements proto.RestaurantFoodServer.
@@ -61,13 +119,25 @@ func (r *RestaurantFoodService) CreateRestaurant(ctx context.Context, restaurant
 		fmt.Println("Error inserting restaurant: ", err)
 		return nil, err
 	}
-
-	return &proto.Restaurant{
+	restaurantProto := &proto.Restaurant{
 		Id:      result.InsertedID.(bson.ObjectID).Hex(),
 		Name:    restaurant.Name,
 		Address: restaurant.Address,
 		Phone:   restaurant.Phone,
-	}, nil
+	}
+
+	event := model.RestaurantEvent{
+		Event:          "restaurant.create",
+		Id:             restaurantProto.Id,
+		RestaurantName: restaurantProto.Name,
+		Address:        restaurantProto.Address,
+		Phone:          restaurantProto.Phone,
+	}
+	if err := r.publishRestaurantEvent(event, "restaurant.create"); err != nil {
+		fmt.Println("Error publishing restaurant event: ", err)
+	}
+
+	return restaurantProto, nil
 }
 
 // DeleteFood implements proto.RestaurantFoodServer.
@@ -81,6 +151,14 @@ func (r *RestaurantFoodService) DeleteFood(ctx context.Context, food *proto.Food
 		fmt.Println("Error deleting food: ", err)
 		return nil, err
 	}
+	data := model.FoodEvent{
+		Event: "food.delete",
+		Id:    food.Id,
+	}
+	if err := r.publishFoodEvent(data, "food.delete"); err != nil {
+		fmt.Println("Error publishing food event: ", err)
+	}
+
 	return &proto.Empty{}, nil
 }
 
@@ -95,6 +173,13 @@ func (r *RestaurantFoodService) DeleteRestaurant(ctx context.Context, req *proto
 	if err != nil {
 		fmt.Println("Error deleting restaurant:", err)
 		return nil, err
+	}
+	data := model.RestaurantEvent{
+		Event: "restaurant.delete",
+		Id:    req.Id,
+	}
+	if err := r.publishRestaurantEvent(data, "restaurant.delete"); err != nil {
+		fmt.Println("Error publishing restaurant event: ", err)
 	}
 
 	return &proto.Empty{}, nil
@@ -170,18 +255,18 @@ func (r *RestaurantFoodService) GetRestaurantByRestaurantId(ctx context.Context,
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-            return nil, fmt.Errorf("restaurant not found")
-        }
+			return nil, fmt.Errorf("restaurant not found")
+		}
 
-        fmt.Errorf("Error finding restaurant: %v", err)
-        return nil, err
+		fmt.Errorf("Error finding restaurant: %v", err)
+		return nil, err
 	}
 
-	restaurant := &proto.Restaurant {
+	restaurant := &proto.Restaurant{
 		Id:      restaurantModel.Id.Hex(),
-        Name:    restaurantModel.Name,
-        Address: restaurantModel.Address,
-        Phone:   restaurantModel.Phone,
+		Name:    restaurantModel.Name,
+		Address: restaurantModel.Address,
+		Phone:   restaurantModel.Phone,
 	}
 
 	return restaurant, nil
@@ -241,6 +326,19 @@ func (r *RestaurantFoodService) UpdateFood(ctx context.Context, food *proto.Food
 		fmt.Println("Error updating food: ", err)
 		return nil, err
 	}
+
+	data := model.FoodEvent{
+		Event:        "food.update",
+		Id:           food.Id,
+		FoodName:     food.Name,
+		RestaurantId: food.RestaurantId,
+		Price:        food.Price,
+	}
+
+	if err := r.publishFoodEvent(data, "food.update"); err != nil {
+		fmt.Println("Error publishing food event: ", err)
+	}
+
 	return &proto.Food{
 		Id:           food.Id,
 		RestaurantId: food.RestaurantId,
@@ -268,6 +366,17 @@ func (r *RestaurantFoodService) UpdateRestaurants(ctx context.Context, restauran
 	if err != nil {
 		fmt.Println("Error updating restaurant:", err)
 		return nil, err
+	}
+
+	event := model.RestaurantEvent{
+		Event:          "restaurant.update",
+		Id:             restaurant.Id,
+		RestaurantName: restaurant.Name,
+		Address:        restaurant.Address,
+		Phone:          restaurant.Phone,
+	}
+	if err := r.publishRestaurantEvent(event, "restaurant.update"); err != nil {
+		fmt.Println("Error publishing restaurant event: ", err)
 	}
 
 	return &proto.Restaurant{
