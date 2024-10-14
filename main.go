@@ -28,8 +28,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, close := context.WithTimeout(context.Background(), 10*time.Second)
 	defer func() {
+		close()
 		if err = client.Disconnect(ctx); err != nil {
 			panic(err)
 		}

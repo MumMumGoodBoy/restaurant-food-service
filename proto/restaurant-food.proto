@@ -13,7 +13,8 @@ service RestaurantFood {
   //Food
   rpc GetFoodsByRestaurantId (RestaurantIdRequest) returns (GetFoodResponse) {}
   rpc GetFoodByFoodId (FoodIdRequest) returns (Food) {}
-  rpc CreateFood (Food) returns (Food) {} 
+  rpc GetFoodsByFoodIds (FoodIdsRequest) returns (GetFoodResponse) {}
+  rpc CreateFood (Food) returns (Food) {}
   rpc UpdateFood (Food) returns (Food) {}
   rpc DeleteFood (FoodIdRequest) returns (Empty) {}
 }
@@ -55,7 +56,10 @@ message FoodIdRequest {
     string id = 1;
 }
 
+message FoodIdsRequest {
+    repeated string ids = 1;
+}
+
 message GetFoodResponse{
     repeated Food foods = 1;
 }
-

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"github.com/MumMumGoodBoy/restaurant-food-service/internal/model"
 	"github.com/MumMumGoodBoy/restaurant-food-service/proto"
@@ -114,7 +115,6 @@ func (r *RestaurantFoodService) CreateRestaurant(ctx context.Context, restaurant
 		Phone:   restaurant.Phone,
 	}
 	result, err := r.RestaurantCollection.InsertOne(ctx, restaurantModel)
-
 	if err != nil {
 		fmt.Println("Error inserting restaurant: ", err)
 		return nil, err
@@ -252,7 +252,6 @@ func (r *RestaurantFoodService) GetRestaurantByRestaurantId(ctx context.Context,
 
 	var restaurantModel model.Restaurant
 	err = result.Decode(&restaurantModel)
-
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, fmt.Errorf("restaurant not found")
@@ -385,4 +384,46 @@ func (r *RestaurantFoodService) UpdateRestaurants(ctx context.Context, restauran
 		Address: restaurant.Address,
 		Phone:   restaurant.Phone,
 	}, nil
+}
+
+// GetFoodsByFoodIds implements proto.RestaurantFoodServer.
+func (r *RestaurantFoodService) GetFoodsByFoodIds(ctx context.Context, req *proto.FoodIdsRequest) (*proto.GetFoodResponse, error) {
+	var ids []bson.ObjectID
+	for _, id := range req.Ids {
+		oid, err := bson.ObjectIDFromHex(id)
+		if err != nil {
+			return nil, fmt.Errorf("invalid FoodId: %v", err)
+		}
+		ids = append(ids, oid)
+	}
+
+	cursor, err := r.FoodCollection.Find(ctx, bson.M{"_id": bson.M{"$in": ids}})
+	if err != nil {
+		slog.WarnContext(ctx, "Error finding foods by ids: %v", err)
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var foods []*proto.Food
+	for cursor.Next(ctx) {
+		var foodModel model.Food
+		if err := cursor.Decode(&foodModel); err != nil {
+			slog.WarnContext(ctx, "Error decoding food: %v", err)
+			return nil, err
+		}
+		foods = append(foods, &proto.Food{
+			Id:           foodModel.Id.Hex(),
+			RestaurantId: foodModel.RestaurantId.Hex(),
+			Name:         foodModel.Name,
+			Description:  foodModel.Description,
+			Price:        foodModel.Price,
+		})
+	}
+
+	if err := cursor.Err(); err != nil {
+		slog.WarnContext(ctx, "Cursor error: %v", err)
+		return nil, err
+	}
+
+	return &proto.GetFoodResponse{Foods: foods}, nil
 }
