@@ -50,6 +50,7 @@ message Food {
     string description = 3;
     float price = 4;
     string restaurant_id = 5;
+    string image_url = 6;
 }
 
 message FoodIdRequest {

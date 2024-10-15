@@ -76,6 +76,7 @@ func (r *RestaurantFoodService) CreateFood(ctx context.Context, food *proto.Food
 		Name:         food.Name,
 		Description:  food.Description,
 		Price:        food.Price,
+		ImageUrl:     food.ImageUrl,
 	}
 
 	result, err := r.FoodCollection.InsertOne(ctx, foodModel)
@@ -90,6 +91,7 @@ func (r *RestaurantFoodService) CreateFood(ctx context.Context, food *proto.Food
 		Name:         food.Name,
 		Description:  food.Description,
 		Price:        food.Price,
+		ImageUrl: 	  food.ImageUrl,
 	}
 
 	data := model.FoodEvent{
@@ -98,6 +100,7 @@ func (r *RestaurantFoodService) CreateFood(ctx context.Context, food *proto.Food
 		FoodName:     foodProto.Name,
 		RestaurantId: foodProto.RestaurantId,
 		Price:        foodProto.Price,
+		ImageUrl:     foodProto.ImageUrl,
 	}
 	if err := r.publishFoodEvent(data, "food.create"); err != nil {
 		fmt.Println("Error publishing food event: ", err)
@@ -203,6 +206,7 @@ func (r *RestaurantFoodService) GetFoodByFoodId(ctx context.Context, food *proto
 		Name:         foodModel.Name,
 		Description:  foodModel.Description,
 		Price:        foodModel.Price,
+		ImageUrl:     foodModel.ImageUrl,
 	}, nil
 }
 
@@ -232,6 +236,7 @@ func (r *RestaurantFoodService) GetFoodsByRestaurantId(ctx context.Context, rest
 			Name:         foodModel.Name,
 			Description:  foodModel.Description,
 			Price:        foodModel.Price,
+			ImageUrl: 	  foodModel.ImageUrl,
 		})
 	}
 	if err := cursor.Err(); err != nil {
@@ -257,8 +262,7 @@ func (r *RestaurantFoodService) GetRestaurantByRestaurantId(ctx context.Context,
 			return nil, fmt.Errorf("restaurant not found")
 		}
 
-		fmt.Errorf("Error finding restaurant: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("error finding restaurant: %v", err)
 	}
 
 	restaurant := &proto.Restaurant{
@@ -319,6 +323,7 @@ func (r *RestaurantFoodService) UpdateFood(ctx context.Context, food *proto.Food
 		Name:         food.Name,
 		Description:  food.Description,
 		Price:        food.Price,
+		ImageUrl: 	  food.ImageUrl,
 	}
 	_, err = r.FoodCollection.ReplaceOne(ctx, bson.M{"_id": foodId}, foodModel)
 	if err != nil {
@@ -332,6 +337,7 @@ func (r *RestaurantFoodService) UpdateFood(ctx context.Context, food *proto.Food
 		FoodName:     food.Name,
 		RestaurantId: food.RestaurantId,
 		Price:        food.Price,
+		ImageUrl: 	  food.ImageUrl,
 	}
 
 	if err := r.publishFoodEvent(data, "food.update"); err != nil {
@@ -344,6 +350,7 @@ func (r *RestaurantFoodService) UpdateFood(ctx context.Context, food *proto.Food
 		Name:         food.Name,
 		Description:  food.Description,
 		Price:        food.Price,
+		ImageUrl: 	  food.ImageUrl,
 	}, nil
 }
 
@@ -417,6 +424,7 @@ func (r *RestaurantFoodService) GetFoodsByFoodIds(ctx context.Context, req *prot
 			Name:         foodModel.Name,
 			Description:  foodModel.Description,
 			Price:        foodModel.Price,
+			ImageUrl: 	  foodModel.ImageUrl,	
 		})
 	}
 

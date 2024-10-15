@@ -8,6 +8,7 @@ type Food struct {
 	Name         string        `bson:"name"`
 	Description  string        `bson:"description"`
 	Price        float32       `bson:"price"`
+	ImageUrl	 string		   `bson:"image_url"`
 }
 
 type FoodEvent struct {
@@ -16,4 +17,5 @@ type FoodEvent struct {
 	FoodName     string  `json:"foodName"`
 	RestaurantId string  `json:"restaurantId"`
 	Price        float32 `json:"price"`
+	ImageUrl	 string	 `json:"image_url"`
 }
