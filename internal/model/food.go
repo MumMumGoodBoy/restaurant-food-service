@@ -16,6 +16,7 @@ type FoodEvent struct {
 	Id           string  `json:"id"`
 	FoodName     string  `json:"foodName"`
 	RestaurantId string  `json:"restaurantId"`
+	Description	 string	 `json:"description"`
 	Price        float32 `json:"price"`
 	ImageUrl	 string	 `json:"image_url"`
 }

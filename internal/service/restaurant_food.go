@@ -100,6 +100,7 @@ func (r *RestaurantFoodService) CreateFood(ctx context.Context, food *proto.Food
 		FoodName:     foodProto.Name,
 		RestaurantId: foodProto.RestaurantId,
 		Price:        foodProto.Price,
+		Description:  foodProto.Description,
 		ImageUrl:     foodProto.ImageUrl,
 	}
 	if err := r.publishFoodEvent(data, "food.create"); err != nil {
@@ -337,6 +338,7 @@ func (r *RestaurantFoodService) UpdateFood(ctx context.Context, food *proto.Food
 		FoodName:     food.Name,
 		RestaurantId: food.RestaurantId,
 		Price:        food.Price,
+		Description:  food.Description,
 		ImageUrl: 	  food.ImageUrl,
 	}
 
