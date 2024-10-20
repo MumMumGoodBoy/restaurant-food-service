@@ -22,6 +22,7 @@ func main() {
 		log.Fatalf("Error loading .env file")
 	}
 
+	port := os.Getenv("PORT")
 	// Connect to MongoDB
 	client, err := mongo.Connect(options.Client().ApplyURI("mongodb://user:pass@localhost:27017"))
 	if err != nil {
@@ -89,11 +90,12 @@ func main() {
 	grpcServer := grpc.NewServer()
 	proto.RegisterRestaurantFoodServer(grpcServer, &restaurantFoodService)
 
-	lis, err := net.Listen("tcp", ":9000")
+	lis, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	log.Printf("Restaurant Food Service is running on port %s", port)
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatal(err)
 	}
