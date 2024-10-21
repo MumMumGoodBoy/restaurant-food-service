@@ -70,6 +70,10 @@ func (r *RestaurantFoodService) CreateFood(ctx context.Context, food *proto.Food
 	if err != nil {
 		return nil, fmt.Errorf("invalid RestaurantId: %v", err)
 	}
+	_, err = r.GetRestaurantByRestaurantId(ctx, &proto.RestaurantIdRequest{Id: food.RestaurantId})
+	if err != nil {
+		return nil, fmt.Errorf("invalid RestaurantId: %v", err)
+	}
 	foodModel := &model.Food{
 		Id:           bson.NewObjectID(),
 		RestaurantId: restaurantId,
@@ -150,6 +154,10 @@ func (r *RestaurantFoodService) DeleteFood(ctx context.Context, food *proto.Food
 	if err != nil {
 		return nil, fmt.Errorf("invalid FoodId: %v", err)
 	}
+	_, err = r.GetFoodByFoodId(ctx, &proto.FoodIdRequest{Id: food.Id})
+	if err != nil {
+		return nil, fmt.Errorf("invalid FoodId: %v", err)
+	}
 	_, err = r.FoodCollection.DeleteOne(ctx, bson.M{"_id": foodId})
 	if err != nil {
 		fmt.Println("Error deleting food: ", err)
@@ -169,6 +177,10 @@ func (r *RestaurantFoodService) DeleteFood(ctx context.Context, food *proto.Food
 // DeleteRestaurant implements proto.RestaurantFoodServer.
 func (r *RestaurantFoodService) DeleteRestaurant(ctx context.Context, req *proto.RestaurantIdRequest) (*proto.Empty, error) {
 	restaurantId, err := bson.ObjectIDFromHex(req.Id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid RestaurantId: %v", err)
+	}
+	_, err = r.GetRestaurantByRestaurantId(ctx, &proto.RestaurantIdRequest{Id: req.Id})
 	if err != nil {
 		return nil, fmt.Errorf("invalid RestaurantId: %v", err)
 	}
@@ -198,7 +210,6 @@ func (r *RestaurantFoodService) GetFoodByFoodId(ctx context.Context, food *proto
 	var foodModel model.Food
 	err = r.FoodCollection.FindOne(ctx, bson.M{"_id": foodId}).Decode(&foodModel)
 	if err != nil {
-		fmt.Println("Error finding food: ", err)
 		return nil, err
 	}
 	return &proto.Food{
@@ -216,6 +227,10 @@ func (r *RestaurantFoodService) GetFoodsByRestaurantId(ctx context.Context, rest
 	restaurantId, err := bson.ObjectIDFromHex(restaurant.Id)
 	if err != nil {
 		return nil, fmt.Errorf("invalid RestaurantId: %v", err)
+	}
+	_, err = r.GetRestaurantByRestaurantId(ctx, &proto.RestaurantIdRequest{Id: restaurant.Id})
+	if err != nil {
+		return nil, fmt.Errorf("invalid FoodId: %v", err)
 	}
 	cursor, err := r.FoodCollection.Find(ctx, bson.M{"restaurant_id": restaurantId})
 	if err != nil {
@@ -314,6 +329,10 @@ func (r *RestaurantFoodService) UpdateFood(ctx context.Context, food *proto.Food
 		return nil, fmt.Errorf("invalid FoodId: %v", err)
 	}
 	restaurantId, err := bson.ObjectIDFromHex(food.RestaurantId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid RestaurantId: %v", err)
+	}
+	_, err = r.GetRestaurantByRestaurantId(ctx, &proto.RestaurantIdRequest{Id: food.RestaurantId})
 	if err != nil {
 		return nil, fmt.Errorf("invalid RestaurantId: %v", err)
 	}
