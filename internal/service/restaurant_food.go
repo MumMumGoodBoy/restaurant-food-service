@@ -417,6 +417,10 @@ func (r *RestaurantFoodService) UpdateRestaurants(ctx context.Context, restauran
 // GetFoodsByFoodIds implements proto.RestaurantFoodServer.
 func (r *RestaurantFoodService) GetFoodsByFoodIds(ctx context.Context, req *proto.FoodIdsRequest) (*proto.GetFoodResponse, error) {
 	var ids []bson.ObjectID
+	var foods []*proto.Food
+	if len(req.Ids) == 0 {
+		return &proto.GetFoodResponse{Foods: foods}, nil
+	}
 	for _, id := range req.Ids {
 		oid, err := bson.ObjectIDFromHex(id)
 		if err != nil {
@@ -432,7 +436,6 @@ func (r *RestaurantFoodService) GetFoodsByFoodIds(ctx context.Context, req *prot
 	}
 	defer cursor.Close(ctx)
 
-	var foods []*proto.Food
 	for cursor.Next(ctx) {
 		var foodModel model.Food
 		if err := cursor.Decode(&foodModel); err != nil {
