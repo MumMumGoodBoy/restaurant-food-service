@@ -24,7 +24,8 @@ func main() {
 
 	port := os.Getenv("PORT")
 	// Connect to MongoDB
-	client, err := mongo.Connect(options.Client().ApplyURI("mongodb://user:pass@localhost:27017"))
+	mongoURI := os.Getenv("MONGO_URI")
+	client, err := mongo.Connect(options.Client().ApplyURI(mongoURI))
 	if err != nil {
 		log.Fatal(err)
 	}
