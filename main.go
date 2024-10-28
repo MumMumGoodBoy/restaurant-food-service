@@ -27,7 +27,7 @@ func main() {
 	mongoURI := os.Getenv("MONGO_URI")
 	client, err := mongo.Connect(options.Client().ApplyURI(mongoURI))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to connect to MongoDB", err)
 	}
 
 	ctx, close := context.WithTimeout(context.Background(), 10*time.Second)
@@ -46,7 +46,7 @@ func main() {
 	// Connect to RabbitMQ
 	rabbitMQConn, err := amqp091.Dial(os.Getenv("RABBITMQ_URL"))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to connect to RabbitMQ", err)
 	}
 	defer rabbitMQConn.Close()
 
