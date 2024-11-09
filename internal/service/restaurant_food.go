@@ -185,6 +185,18 @@ func (r *RestaurantFoodService) DeleteRestaurant(ctx context.Context, req *proto
 		return nil, fmt.Errorf("invalid RestaurantId: %v", err)
 	}
 
+	foods, err := r.GetFoodsByRestaurantId(ctx, &proto.RestaurantIdRequest{Id: req.Id})
+	if err != nil {
+		return nil, fmt.Errorf("invalid RestaurantId: %v", err)
+	}
+
+	for _, food := range foods.Foods {
+		_, err := r.DeleteFood(ctx, &proto.FoodIdRequest{Id: food.Id})
+		if err != nil {
+			return nil, fmt.Errorf("error deleting food: %v", err)
+		}
+	}
+
 	_, err = r.RestaurantCollection.DeleteOne(ctx, bson.M{"_id": restaurantId})
 	if err != nil {
 		fmt.Println("Error deleting restaurant:", err)
@@ -230,7 +242,7 @@ func (r *RestaurantFoodService) GetFoodsByRestaurantId(ctx context.Context, rest
 	}
 	_, err = r.GetRestaurantByRestaurantId(ctx, &proto.RestaurantIdRequest{Id: restaurant.Id})
 	if err != nil {
-		return nil, fmt.Errorf("invalid FoodId: %v", err)
+		return nil, fmt.Errorf("invalid RestaurantId: %v", err)
 	}
 	cursor, err := r.FoodCollection.Find(ctx, bson.M{"restaurant_id": restaurantId})
 	if err != nil {
